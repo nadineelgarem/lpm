@@ -6,7 +6,7 @@ This project was built by **Nadine Elgarem**, together with her colleagues, to p
 
 ---
 
-## ✨ Features
+##  Features
 
 ###  CLI Features
 - List running processes
