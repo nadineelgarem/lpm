@@ -39,8 +39,4 @@ This project was built by **Nadine Elgarem**, together with her colleagues, to p
 
 ---
 
-##  How to Run
 
-###  Run CLI
-```bash
-cargo run --bin lpm-cli -- --help
