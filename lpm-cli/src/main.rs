@@ -1,0 +1,125 @@
+use clap::{Arg, ArgAction, Command};
+use lpm_core::ProcessManager;
+use sysinfo::ProcessExt;
+
+fn main() {
+    let matches = Command::new("LPM CLI")
+        .version("1.0")
+        .author("Your Name")
+        .about("Linux Process Manager CLI")
+        .arg(
+            Arg::new("filter")
+                .short('f')
+                .long("filter")
+                .help("Filter by process name")
+                .action(ArgAction::Set),
+        )
+        .arg(
+            Arg::new("user")
+                .short('u')
+                .long("user")
+                .help("Filter by user")
+                .action(ArgAction::Set),
+        )
+        .arg(
+            Arg::new("sort")
+                .short('s')
+                .long("sort")
+                .help("Sort by: cpu or mem")
+                .action(ArgAction::Set),
+        )
+        .arg(
+            Arg::new("kill")
+                .long("kill")
+                .help("Kill a process by PID")
+                .action(ArgAction::Set),
+        )
+        .arg(
+            Arg::new("restart")
+                .long("restart")
+                .help("Restart a process by PID")
+                .action(ArgAction::Set),
+        )
+        .arg(
+            Arg::new("export")
+                .long("export")
+                .help("Export process list to a JSON file (pass filename)")
+                .action(ArgAction::Set),
+        )
+        .arg(
+            Arg::new("alerts")
+                .long("alerts")
+                .help("Check high CPU/RAM alerts")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("history")
+                .long("history")
+                .help("Show process action history")
+                .action(ArgAction::SetTrue),
+        )
+        .get_matches();
+
+    let mut manager = ProcessManager::new();
+
+    if let Some(name) = matches.get_one::<String>("filter") {
+        for p in manager.list_processes_by_name(name) {
+            println!("[{}] {} CPU: {:.2}% MEM: {} KB", p.pid(), p.name(), p.cpu_usage(), p.memory());
+        }
+    } else if let Some(user) = matches.get_one::<String>("user") {
+        for p in manager.list_processes_by_user(user) {
+            println!("[{}] {} CPU: {:.2}% MEM: {} KB", p.pid(), p.name(), p.cpu_usage(), p.memory());
+        }
+    } else if let Some(sort_by) = matches.get_one::<String>("sort") {
+        let mut processes = manager.list_processes();
+        if sort_by == "cpu" {
+            processes.sort_by(|a, b| b.cpu_usage().partial_cmp(&a.cpu_usage()).unwrap_or(std::cmp::Ordering::Equal));
+        } else if sort_by == "mem" {
+            processes.sort_by(|a, b| b.memory().cmp(&a.memory()));
+        }
+        for p in processes {
+            println!("[{}] {} CPU: {:.2}% MEM: {} KB", p.pid(), p.name(), p.cpu_usage(), p.memory());
+        }
+    } else if let Some(pid_str) = matches.get_one::<String>("kill") {
+        if let Ok(pid) = pid_str.parse::<usize>() {
+            if manager.kill_process(pid) {
+                println!("Killed process {}", pid);
+            } else {
+                println!("Failed to kill process {}", pid);
+            }
+        } else {
+            println!("Invalid PID: {}", pid_str);
+        }
+    } else if let Some(pid_str) = matches.get_one::<String>("restart") {
+        if let Ok(pid) = pid_str.parse::<usize>() {
+            if manager.restart_process(pid) {
+                println!("Restarted process {}", pid);
+            } else {
+                println!("Failed to restart process {}", pid);
+            }
+        } else {
+            println!("Invalid PID: {}", pid_str);
+        }
+    } else if let Some(file) = matches.get_one::<String>("export") {
+        if let Err(e) = manager.export_processes("json", file) {
+            println!("Export failed: {}", e);
+        } else {
+            println!("Exported to {}", file);
+        }
+    } else if matches.get_flag("alerts") {
+        let alerts = manager.check_alerts(80.0, 500_000);
+        if alerts.is_empty() {
+            println!("No high CPU/RAM processes.");
+        } else {
+            println!("Alerts:");
+            for alert in alerts {
+                println!("{}", alert);
+            }
+        }
+    } else if matches.get_flag("history") {
+        println!("History:\n{}", manager.show_history());
+    } else {
+        println!("No command provided. Run with --help to see options.");
+    }
+}
+

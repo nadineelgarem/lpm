@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "lpm-cli",
+    "lpm-gui",
+    "lpm-core"
+]
+resolver = "3"
+
