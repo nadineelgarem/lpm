@@ -8,7 +8,7 @@ This project was built by **Nadine Elgarem**, together with her colleagues, to p
 
 ## ✨ Features
 
-### ✅ CLI Features
+###  CLI Features
 - List running processes
 - Filter processes by name (`--filter`)
 - Filter processes by user (`--user`)
@@ -19,7 +19,7 @@ This project was built by **Nadine Elgarem**, together with her colleagues, to p
 - Check alerts for high CPU or RAM usage (`--alerts`)
 - View history of actions taken (`--history`)
 
-### ✅ GUI Features
+###  GUI Features
 - Display live list of processes in a table
 - Filter by process name or user
 - Sort by CPU, memory, or user
@@ -30,7 +30,7 @@ This project was built by **Nadine Elgarem**, together with her colleagues, to p
 
 ---
 
-## 🛠️ Tools & Crates Used
+##  Tools & Crates Used
 
 - [`sysinfo`](https://crates.io/crates/sysinfo) → Retrieve system and process info
 - [`clap`](https://crates.io/crates/clap) → Parse CLI arguments and commands
@@ -39,8 +39,8 @@ This project was built by **Nadine Elgarem**, together with her colleagues, to p
 
 ---
 
-## 🚀 How to Run
+##  How to Run
 
-### 🖥️ Run CLI
+###  Run CLI
 ```bash
 cargo run --bin lpm-cli -- --help
