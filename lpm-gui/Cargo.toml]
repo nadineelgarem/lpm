@@ -1,0 +1,22 @@
+[package]
+name = "lpm-gui"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+gtk = { version = "0.6.6", package = "gtk4" }      # Uses cairo-rs v0.17.x
+sysinfo = "0.28"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+lpm-core = { path = "../lpm-core" }
+libc = "0.2"
+
+# ✅ Use latest compatible version (matches gtk4's cairo)
+plotters = "0.3"
+plotters-cairo = "0.5"
+
+# ❌ REMOVE THIS if present:
+# cairo-rs = "..."
+# [patch.crates-io]
+# cairo-rs = "..."
+

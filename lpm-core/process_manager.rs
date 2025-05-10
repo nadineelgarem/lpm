@@ -1,29 +1,35 @@
 use sysinfo::{System, SystemExt, ProcessExt, UserExt, PidExt};
+use libc::{setpriority, PRIO_PROCESS};
 
 pub struct ProcessManager {
     system: System,
+    history: Vec<String>,
 }
 
 impl ProcessManager {
     pub fn new() -> Self {
         let mut system = System::new_all();
         system.refresh_all();
-        ProcessManager { system }
+        ProcessManager {
+            system,
+            history: Vec::new(),
+        }
     }
 
-    pub fn list_processes(&mut self) -> Vec<&sysinfo::Process> {
+    /// Returns owned process data to avoid lifetime issues
+    pub fn list_processes(&mut self) -> Vec<sysinfo::Process> {
         self.system.refresh_all();
-        self.system.processes().values().collect()
+        self.system.processes().values().cloned().collect()
     }
 
-    pub fn list_processes_by_name(&mut self, name: &str) -> Vec<&sysinfo::Process> {
+    pub fn list_processes_by_name(&mut self, name: &str) -> Vec<sysinfo::Process> {
         self.list_processes()
             .into_iter()
             .filter(|p| p.name().contains(name))
             .collect()
     }
 
-    pub fn list_processes_by_user(&mut self, user: &str) -> Vec<&sysinfo::Process> {
+    pub fn list_processes_by_user(&mut self, user: &str) -> Vec<sysinfo::Process> {
         self.list_processes()
             .into_iter()
             .filter(|p| {
@@ -34,28 +40,39 @@ impl ProcessManager {
             .collect()
     }
 
-    pub fn kill_process(&mut self, pid: usize) -> bool {
-        self.system.refresh_all();
-        if let Some(process) = self.system.process(sysinfo::Pid::from(pid as i32)) {
-            process.kill(sysinfo::Signal::Kill)
-        } else {
-            false
-        }
+use libc::{kill, SIGKILL}; // make sure this is at the top of the file
+
+pub fn kill_process(&mut self, pid: usize) -> bool {
+    self.system.refresh_all();
+
+    let success = unsafe { kill(pid as i32, SIGKILL) } == 0;
+
+    self.history.push(format!("Tried to kill PID {} -> {}", pid, success));
+    success
+}
+
+    pub fn restart_process(&mut self, pid: usize) -> bool {
+        self.history.push(format!("Restart requested for PID {} -> unsupported", pid));
+        false
     }
 
-    pub fn restart_process(&mut self, _pid: usize) -> bool {
-        false // Placeholder: no restart logic yet
+    pub fn change_priority(&mut self, pid: usize, priority: i32) -> bool {
+        let result = unsafe { setpriority(PRIO_PROCESS, pid as u32, priority) } == 0;
+        self.history.push(format!("Priority change: PID {} -> {} -> {}", pid, priority, result));
+        result
     }
 
     pub fn export_processes(&self, format: &str, path: &str) -> std::io::Result<()> {
         let processes: Vec<_> = self.system.processes().values()
             .map(|p| format!("{}: {}", p.pid(), p.name()))
             .collect();
+
         let content = if format == "json" {
             serde_json::to_string_pretty(&processes).unwrap()
         } else {
             processes.join("\n")
         };
+
         std::fs::write(path, content)
     }
 
@@ -67,7 +84,11 @@ impl ProcessManager {
     }
 
     pub fn show_history(&self) -> String {
-        "History feature is not yet implemented.".to_string()
+        if self.history.is_empty() {
+            "No actions performed yet.".to_string()
+        } else {
+            self.history.join("\n")
+        }
     }
 }
-y
+

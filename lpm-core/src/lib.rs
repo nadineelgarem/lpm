@@ -1,5 +1,8 @@
-use sysinfo::{System, SystemExt, ProcessExt, Pid};
+// src/lib.rs for lpm-core
+
+use sysinfo::{System, SystemExt, ProcessExt, Pid, PidExt};
 use chrono::Local;
+use libc::{setpriority, PRIO_PROCESS};
 
 pub struct ProcessManager {
     system: System,
@@ -41,6 +44,25 @@ impl ProcessManager {
         } else {
             false
         }
+    }
+
+    pub fn change_priority(&mut self, pid: usize, new_nice: i32) -> bool {
+        let result = unsafe { setpriority(PRIO_PROCESS, pid as u32, new_nice) == 0 };
+        self.history.push(format!("{} CHANGED PRIORITY PID {} TO {}", Local::now(), pid, new_nice));
+        result
+    }
+
+    pub fn get_process_tree(&mut self) -> Vec<(usize, String, Option<usize>)> {
+        self.system.refresh_processes();
+        self.system
+            .processes()
+            .values()
+            .map(|p| (
+                p.pid().as_u32() as usize,
+                p.name().to_string(),
+                p.parent().map(|pp| pp.as_u32() as usize),
+            ))
+            .collect()
     }
 
     pub fn restart_process(&mut self, pid: usize) -> bool {
